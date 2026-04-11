@@ -3,17 +3,17 @@ server:
 
 app:
   jwt:
-    secret: 3f8b2e9d1a7c4f6e0b5d8a2c7e4f1b9d3a6c8e2f5b7d0a4c9e3f6b1d8a5c2e7f
-    expiration: 86400000  # 24 hours in ms
+    secret: ${JWT_SECRET:3f8b2e9d1a7c4f6e0b5d8a2c7e4f1b9d3a6c8e2f5b7d0a4c9e3f6b1d8a5c2e7f}
+    expiration: 86400000
 
 spring:
   application:
     name: saas-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/saas_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: Prinsh@854200
+    url: ${DB_URL:jdbc:mysql://metro.proxy.rlwy.net:16640/railway}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:ZbGScXxpRLQAbWvafoLjyQUrRlAlQLQi}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -26,7 +26,11 @@ spring:
         format_sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_SERVER:pkc-921jm.us-east-2.aws.confluent.cloud:443}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_KEY:PLEBR6UYY7MPF7OL}" password="${KAFKA_SECRET:cfltBtw7nBj1x94Qj4myAkIiudarkeqfCwQur2U+L4CGjXWQy+hI0ChOo65zjixQ}";'
     consumer:
       group-id: saas-group
       auto-offset-reset: earliest
@@ -34,12 +38,6 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-        session.timeout.ms: 15000
-        request.timeout.ms: 20000
-        reconnect.backoff.ms: 5000
-        reconnect.backoff.max.ms: 30000
-        retry.backoff.ms: 5000
-        retry.backoff.max.ms: 30000
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -47,9 +45,7 @@ spring:
 logging:
   level:
     root: INFO
-    org.apache.kafka.clients.NetworkClient: ERROR
-    org.apache.kafka.clients.consumer.internals: WARN
     com.saas: DEBUG
 
 cors:
-  allowed-origins: "http://localhost:5173"
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
