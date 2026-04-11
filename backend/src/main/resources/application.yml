@@ -1,0 +1,55 @@
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: 3f8b2e9d1a7c4f6e0b5d8a2c7e4f1b9d3a6c8e2f5b7d0a4c9e3f6b1d8a5c2e7f
+    expiration: 86400000  # 24 hours in ms
+
+spring:
+  application:
+    name: saas-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/saas_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: Prinsh@854200
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: saas-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        session.timeout.ms: 15000
+        request.timeout.ms: 20000
+        reconnect.backoff.ms: 5000
+        reconnect.backoff.max.ms: 30000
+        retry.backoff.ms: 5000
+        retry.backoff.max.ms: 30000
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+logging:
+  level:
+    root: INFO
+    org.apache.kafka.clients.NetworkClient: ERROR
+    org.apache.kafka.clients.consumer.internals: WARN
+    com.saas: DEBUG
+
+cors:
+  allowed-origins: "http://localhost:5173"

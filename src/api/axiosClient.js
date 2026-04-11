@@ -1,0 +1,36 @@
+import axios from 'axios';
+
+const axiosClient = axios.create({
+  baseURL: 'http://localhost:8080/api',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 10000,
+});
+
+// ── Request: attach JWT token to every request ────────────────────────────────
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('saas_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ── Response: only force-logout on 401 for PROTECTED routes (not auth routes) ─
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isAuthRoute = error.config?.url?.startsWith('/auth/');
+    if (error.response?.status === 401 && !isAuthRoute) {
+      // Token expired on a protected route → force logout
+      localStorage.removeItem('saas_token');
+      localStorage.removeItem('saas_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosClient;
