@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: flowdesk-backend
+    runtime: java
+    rootDirectory: backend
+    buildCommand: mvn clean install -DskipTests
+    startCommand: java -jar target/backend-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: DB_URL
+        value: jdbc:mysql://metro.proxy.rlwy.net:16640/railway
+      - key: DB_USER
+        value: root
+      - key: DB_PASSWORD
+        value: ZbGScXxpRLQAbWvafoLjyQUrRlAlQLQi
+      - key: KAFKA_SERVER
+        value: pkc-921jm.us-east-2.aws.confluent.cloud:443
+      - key: KAFKA_KEY
+        value: PLEBR6UYY7MPF7OL
+      - key: KAFKA_SECRET
+        value: cfltBtw7nBj1x94Qj4myAkIiudarkeqfCwQur2U+L4CGjXWQy+hI0ChOo65zjixQ
+      - key: ALLOWED_ORIGINS
+        value: "*"
