@@ -47,8 +47,13 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails, @AuthenticationPrincipal User user) {
         return taskRepository.findById(id).map(task -> {
+            // Verify that the logged-in user owns this task
+            if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+                return ResponseEntity.status(403).<Task>build();
+            }
+
             boolean statusChanged = taskDetails.getStatus() != null && !taskDetails.getStatus().equals(task.getStatus());
             
             task.setTitle(taskDetails.getTitle() != null ? taskDetails.getTitle() : task.getTitle());
@@ -72,13 +77,17 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        if(taskRepository.existsById(id)) {
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return taskRepository.findById(id).map(task -> {
+            // Verify that the logged-in user owns this task
+            if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+                return ResponseEntity.status(403).<Void>build();
+            }
+            
             taskRepository.deleteById(id);
             kafkaProducerService.sendTaskUpdate(id, "DELETED");
             kafkaProducerService.sendActivityLog("Task deleted");
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+            return ResponseEntity.ok().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
