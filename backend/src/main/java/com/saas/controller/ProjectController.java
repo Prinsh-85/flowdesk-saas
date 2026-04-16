@@ -33,4 +33,27 @@ public class ProjectController {
         Project saved = projectRepository.save(project);
         return ResponseEntity.ok(saved);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Project> updateProject(@PathVariable Long id, @RequestBody Project projectDetails, @AuthenticationPrincipal User user) {
+        return projectRepository.findById(id).map(project -> {
+            if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+                return ResponseEntity.status(403).<Project>build();
+            }
+            project.setName(projectDetails.getName() != null ? projectDetails.getName() : project.getName());
+            project.setDescription(projectDetails.getDescription() != null ? projectDetails.getDescription() : project.getDescription());
+            return ResponseEntity.ok(projectRepository.save(project));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return projectRepository.findById(id).map(project -> {
+            if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+                return ResponseEntity.status(403).<Void>build();
+            }
+            projectRepository.deleteById(id);
+            return ResponseEntity.ok().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
 }

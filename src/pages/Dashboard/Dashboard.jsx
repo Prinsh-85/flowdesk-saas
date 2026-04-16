@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTasks } from '../../context/TaskContext';
 import { useAuth } from '../../context/AuthContext';
-import { getAllProjects, createProject } from '../../api/projectService';
+import { getAllProjects, createProject, deleteProject } from '../../api/projectService';
 import {
   LayoutDashboard, CheckCircle2, Clock, Zap, FolderKanban,
-  Plus, X, ArrowRight, AlertCircle, TrendingUp
+  Plus, X, ArrowRight, AlertCircle, TrendingUp, Trash2
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -18,6 +18,17 @@ export function Dashboard() {
   const [newProject, setNewProject] = useState({ name: '', description: '' });
   const [creating, setCreating] = useState(false);
   const [projError, setProjError] = useState('');
+
+  const handleDeleteProject = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this project and all its tasks?")) return;
+    try {
+      await deleteProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      alert("Failed to delete project");
+    }
+  };
 
   useEffect(() => {
     getAllProjects()
@@ -66,7 +77,7 @@ export function Dashboard() {
           <h1>Good {getTimeOfDay()}, {user?.name?.split(' ')[0]} 👋</h1>
           <p>Here's what's happening in your workspace today.</p>
         </div>
-        <button className="dash-cta" onClick={() => navigate('/board')}>
+        <button className="dash-cta" onClick={() => projects.length > 0 ? navigate(`/board/${projects[0].id}`) : setShowCreate(true)}>
           <Zap size={16} /> Open Board
         </button>
       </div>
@@ -115,13 +126,18 @@ export function Dashboard() {
           ) : (
             <ul className="project-list">
               {projects.map(p => (
-                <li key={p.id} className="project-item" onClick={() => navigate('/board')}>
+                <li key={p.id} className="project-item" onClick={() => navigate(`/board/${p.id}`)}>
                   <div className="project-color-dot" />
                   <div className="project-info">
                     <strong>{p.name}</strong>
                     {p.description && <span>{p.description}</span>}
                   </div>
-                  <ArrowRight size={14} className="project-arrow" />
+                  <div style={{ display: 'flex', gap: '8px', zIndex: 10 }}>
+                    <button className="icon-action-btn" onClick={(e) => handleDeleteProject(e, p.id)} title="Delete">
+                      <Trash2 size={14} color="#f43f5e" />
+                    </button>
+                    <ArrowRight size={14} className="project-arrow" style={{ position: 'static' }} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -146,7 +162,7 @@ export function Dashboard() {
           ) : (
             <ul className="recent-task-list">
               {recentTasks.map(t => (
-                <li key={t.id} className="recent-task-item" onClick={() => navigate('/board')}>
+                <li key={t.id} className="recent-task-item" onClick={() => t.project ? navigate(`/board/${t.project.id}`) : null}>
                   <span className={`status-dot dot-${t.status}`} />
                   <span className="task-title-text">{t.title}</span>
                   <span className={`priority-chip chip-${t.priority}`}>{t.priority}</span>

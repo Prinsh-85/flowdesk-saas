@@ -24,7 +24,8 @@ function AppInner() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="board" element={<Board />} />
+          <Route path="board/:projectId" element={<Board />} />
+          <Route path="board" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </SocketProvider>

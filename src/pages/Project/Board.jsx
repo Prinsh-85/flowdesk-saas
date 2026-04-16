@@ -12,6 +12,7 @@ import {
   verticalListSortingStrategy,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
+import { useParams, Navigate } from 'react-router-dom';
 import { useTasks } from '../../context/TaskContext';
 import { Spinner } from '../../components/common/Spinner';
 import { Button } from '../../components/common/Button';
@@ -22,6 +23,7 @@ import { TaskDetails } from './TaskDetails';
 import './Board.css';
 
 export const Board = () => {
+  const { projectId } = useParams();
   const { tasks, loading, error, updateTaskStatus, addTask, refetch } = useTasks();
   const [selectedTask, setSelectedTask] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,7 +61,8 @@ export const Board = () => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
     setCreating(true);
-    await addTask(newTask);
+    // Attach project association here so backend maps it correctly
+    await addTask({ ...newTask, project: { id: Number(projectId) } });
     setCreating(false);
     setNewTask({ title: '', description: '', priority: 'medium', type: 'Task' });
     setShowCreateModal(false);
@@ -99,7 +102,7 @@ export const Board = () => {
               key={col.id}
               id={col.id}
               title={col.title}
-              tasks={tasks.filter(t => t.status === col.id)}
+              tasks={tasks.filter(t => t.status === col.id && t.project?.id === Number(projectId))}
               onTaskClick={setSelectedTask}
             />
           ))}

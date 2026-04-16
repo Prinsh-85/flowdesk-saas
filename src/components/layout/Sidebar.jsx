@@ -20,7 +20,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }) {
 
   const navLinks = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={18} />, end: true },
-    { name: 'Project Board', path: '/board', icon: <KanbanSquare size={18} /> },
+    { name: 'Projects', path: '/', icon: <KanbanSquare size={18} /> },
   ];
 
   return (
