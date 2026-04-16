@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.saas.entity.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -21,12 +23,18 @@ public class TaskController {
     private KafkaProducerService kafkaProducerService;
 
     @GetMapping
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public List<Task> getAllTasks(@AuthenticationPrincipal User user) {
+        if (user == null) {
+            return taskRepository.findAll(); // Fallback
+        }
+        return taskRepository.findByUserId(user.getId());
     }
 
     @PostMapping
-    public Task createTask(@RequestBody Task task) {
+    public Task createTask(@RequestBody Task task, @AuthenticationPrincipal User user) {
+        if (user != null) {
+            task.setUserId(user.getId());
+        }
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         Task saved = taskRepository.save(task);

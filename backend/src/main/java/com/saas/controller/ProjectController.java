@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.saas.entity.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -16,12 +18,18 @@ public class ProjectController {
     private ProjectRepository projectRepository;
 
     @GetMapping
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
+    public List<Project> getAllProjects(@AuthenticationPrincipal User user) {
+        if (user == null) {
+            return projectRepository.findAll(); // Fallback if no auth context
+        }
+        return projectRepository.findByUserId(user.getId());
     }
 
     @PostMapping
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
+    public ResponseEntity<Project> createProject(@RequestBody Project project, @AuthenticationPrincipal User user) {
+        if (user != null) {
+            project.setUserId(user.getId());
+        }
         Project saved = projectRepository.save(project);
         return ResponseEntity.ok(saved);
     }
