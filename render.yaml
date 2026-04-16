@@ -15,5 +15,8 @@ services:
         value: PLEBR6UYY7MPF7OL
       - key: KAFKA_SECRET
         value: cfltBtw7nBj1x94Qj4myAkIiudarkeqfCwQur2U+L4CGjXWQy+hI0ChOo65zjixQ
+      # Allow requests from your Vercel frontend
+      # Add more origins as comma-separated: "https://app.vercel.app,https://custom-domain.com"
       - key: ALLOWED_ORIGINS
-        value: "*"
+        value: "https://flowdesk-saas-prinshs.projects.vercel.app"
+
