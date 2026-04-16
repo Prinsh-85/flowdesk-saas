@@ -46,7 +46,8 @@ spring:
         request.timeout.ms: 3000
         delivery.timeout.ms: 8000
         retries: 0
-
+    listener:
+      auto-startup: false
 logging:
   level:
     root: INFO
@@ -54,3 +55,6 @@ logging:
 
 cors:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+
+
+
