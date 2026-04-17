@@ -33,7 +33,8 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<Project> createProject(@RequestBody Project project, @AuthenticationPrincipal User user) {
         if (user != null) {
-            project.setUserId(user.getId());
+            project.setUser(user);
+            project.setOrganization(user.getOrganization());
         }
         Project saved = projectRepository.save(project);
         return ResponseEntity.ok(saved);
@@ -44,7 +45,7 @@ public class ProjectController {
         Project project = projectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
             
-        if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+        if (user != null && project.getUser() != null && !project.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("Forbidden: You do not have permission to update this project.");
         }
         
@@ -58,7 +59,7 @@ public class ProjectController {
         Project project = projectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
 
-        if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+        if (user != null && project.getUser() != null && !project.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("Forbidden: You do not have permission to delete this project.");
         }
         
