@@ -17,6 +17,9 @@ public class ProjectController {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private com.saas.repository.TaskRepository taskRepository;
+
     @GetMapping
     public List<Project> getAllProjects(@AuthenticationPrincipal User user) {
         if (user == null) {
@@ -52,6 +55,10 @@ public class ProjectController {
             if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
                 return ResponseEntity.status(403).<Void>build();
             }
+            
+            // Delete associated tasks first to avoid foreign key constraints
+            taskRepository.deleteByProjectId(id);
+            
             projectRepository.deleteById(id);
             return ResponseEntity.ok().<Void>build();
         }).orElse(ResponseEntity.notFound().build());
