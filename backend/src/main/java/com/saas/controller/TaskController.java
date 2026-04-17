@@ -33,7 +33,7 @@ public class TaskController {
     @PostMapping
     public Task createTask(@RequestBody Task task, @AuthenticationPrincipal User user) {
         if (user != null) {
-            task.setUserId(user.getId());
+            task.setUser(user);
         }
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
@@ -53,7 +53,7 @@ public class TaskController {
             .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
 
         // Verify that the logged-in user owns this task
-        if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+        if (user != null && task.getUser() != null && !task.getUser().getId().equals(user.getId())) {
             throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to update this task.");
         }
 
@@ -87,7 +87,7 @@ public class TaskController {
             .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
 
         // Verify that the logged-in user owns this task
-        if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+        if (user != null && task.getUser() != null && !task.getUser().getId().equals(user.getId())) {
             throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to delete this task.");
         }
 

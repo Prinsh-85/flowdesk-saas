@@ -3,7 +3,9 @@ package com.saas.controller;
 import com.saas.dto.AuthRequest;
 import com.saas.dto.AuthResponse;
 import com.saas.entity.User;
+import com.saas.entity.Organization;
 import com.saas.repository.UserRepository;
+import com.saas.repository.OrganizationRepository;
 import com.saas.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -37,11 +42,18 @@ public class AuthController {
             return ResponseEntity.badRequest().body(error);
         }
 
+        // Auto-create a default Organization for the user
+        Organization org = new Organization();
+        org.setName(request.getName() + "'s Workspace");
+        Organization savedOrg = organizationRepository.save(org);
+
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword())); // BCrypt
         user.setRole("Member");
+        user.setOrganization(savedOrg);
+        
         User saved = userRepository.save(user);
 
         String token = jwtUtil.generateToken(saved.getEmail(), saved.getId());
