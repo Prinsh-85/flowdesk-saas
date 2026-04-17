@@ -17,4 +17,18 @@ public class Organization {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<Project> projects;
+
+    public java.util.List<Project> getProjects() { return projects; }
+    public void setProjects(java.util.List<Project> projects) { this.projects = projects; }
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<User> users;
+
+    public java.util.List<User> getUsers() { return users; }
+    public void setUsers(java.util.List<User> users) { this.users = users; }
 }

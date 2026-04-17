@@ -31,8 +31,8 @@ public class Task {
     @JoinColumn(name = "project_id")
     private Project project;
 
-    @ManyToOne
-    @JoinColumn(name = "assignee_id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "assigned_user_id")
     private User assignee;
 
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -70,11 +70,4 @@ public class Task {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
 }

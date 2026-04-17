@@ -48,6 +48,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                
+                // Strict Role-based mappings
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/org/**").hasAnyRole("ADMIN", "ORGANIZATION")
+                .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "ORGANIZATION", "USER")
+                
                 // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )

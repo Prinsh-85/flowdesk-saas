@@ -29,10 +29,4 @@ public class Project {
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
 }

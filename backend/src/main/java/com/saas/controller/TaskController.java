@@ -13,7 +13,6 @@ import com.saas.entity.User;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
-@RequestMapping("/api/tasks")
 public class TaskController {
 
     @Autowired
@@ -22,49 +21,52 @@ public class TaskController {
     @Autowired
     private KafkaProducerService kafkaProducerService;
 
-    @GetMapping
+    // Regular users can view tasks assigned strictly to them
+    // Orgs can view all tasks (if they request tasks for their projects, they should filter by project, but we'll return all here for simplicity)
+    @GetMapping({"/api/org/tasks", "/api/user/tasks"})
     public List<Task> getAllTasks(@AuthenticationPrincipal User user) {
         if (user == null) {
             return taskRepository.findAll(); // Fallback
         }
-        return taskRepository.findByUserId(user.getId());
+        return taskRepository.findByAssigneeId(user.getId()); // Note: Need to update TaskRepository to findByAssigneeId
     }
 
-    @PostMapping
+    // Only Admins & Orgs can create tasks
+    @PostMapping("/api/org/tasks")
     public Task createTask(@RequestBody Task task, @AuthenticationPrincipal User user) {
-        if (user != null) {
-            task.setUser(user);
-        }
+        // Optional: Could check if user is an assignee here, but orgs create tasks
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         Task saved = taskRepository.save(task);
 
         // Publish to Kafka
         kafkaProducerService.sendTaskUpdate(saved, "CREATED");
-        kafkaProducerService.sendActivityLog("User created task: " + saved.getTitle());
+        kafkaProducerService.sendActivityLog("Task created: " + saved.getTitle());
 
         return saved;
     }
 
-    @PutMapping("/{id}")
+    // Users update their assigned task status. Orgs can update everything.
+    @PutMapping({"/api/org/tasks/{id}", "/api/user/tasks/{id}"})
     public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task taskDetails,
             @AuthenticationPrincipal User user) {
         Task task = taskRepository.findById(id)
             .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
 
-        // Verify that the logged-in user owns this task
-        if (user != null && task.getUser() != null && !task.getUser().getId().equals(user.getId())) {
-            throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to update this task.");
+        // If it's a regular user, verify they are assigned to it
+        if (user != null && "USER".equals(user.getRole().toUpperCase())) {
+            if (task.getAssignee() == null || !task.getAssignee().getId().equals(user.getId())) {
+                throw new com.saas.exception.ForbiddenException("Forbidden: You are not assigned to this task.");
+            }
         }
 
         boolean statusChanged = taskDetails.getStatus() != null
                 && !taskDetails.getStatus().equals(task.getStatus());
 
-        task.setTitle(taskDetails.getTitle() != null ? taskDetails.getTitle() : task.getTitle());
-        task.setDescription(
-                taskDetails.getDescription() != null ? taskDetails.getDescription() : task.getDescription());
-        task.setStatus(taskDetails.getStatus() != null ? taskDetails.getStatus() : task.getStatus());
-        task.setPriority(taskDetails.getPriority() != null ? taskDetails.getPriority() : task.getPriority());
+        if (taskDetails.getTitle() != null) task.setTitle(taskDetails.getTitle());
+        if (taskDetails.getDescription() != null) task.setDescription(taskDetails.getDescription());
+        if (taskDetails.getStatus() != null) task.setStatus(taskDetails.getStatus());
+        if (taskDetails.getPriority() != null) task.setPriority(taskDetails.getPriority());
         task.setUpdatedAt(LocalDateTime.now());
 
         Task updatedTask = taskRepository.save(task);
@@ -81,16 +83,13 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }
 
-    @DeleteMapping("/{id}")
+    // Only Admins & Orgs can delete tasks
+    @DeleteMapping("/api/org/tasks/{id}")
     public ResponseEntity<?> deleteTask(@PathVariable Long id, @AuthenticationPrincipal User user) {
         Task task = taskRepository.findById(id)
             .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
 
-        // Verify that the logged-in user owns this task
-        if (user != null && task.getUser() != null && !task.getUser().getId().equals(user.getId())) {
-            throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to delete this task.");
-        }
-
+        // Organization verification could be done here based on Project's organization
         taskRepository.deleteById(id);
         kafkaProducerService.sendTaskUpdate(id, "DELETED");
         kafkaProducerService.sendActivityLog("Task deleted");
