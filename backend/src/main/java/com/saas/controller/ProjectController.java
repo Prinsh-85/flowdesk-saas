@@ -13,7 +13,6 @@ import com.saas.entity.User;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
-@RequestMapping("/api/projects")
 public class ProjectController {
 
     @Autowired
@@ -22,30 +21,34 @@ public class ProjectController {
     @Autowired
     private com.saas.repository.TaskRepository taskRepository;
 
-    @GetMapping
+    // Organization members can view all projects in their org
+    // Regular users can view projects they are assigned to (or their org's projects)
+    @GetMapping({"/api/org/projects", "/api/user/projects"})
     public List<Project> getAllProjects(@AuthenticationPrincipal User user) {
-        if (user == null) {
-            return projectRepository.findAll(); // Fallback if no auth context
+        if (user == null || user.getOrganization() == null) {
+            return projectRepository.findAll(); // Admin fallback or unauthenticated
         }
-        return projectRepository.findByUserId(user.getId());
+        return projectRepository.findByOrganizationId(user.getOrganization().getId());
     }
 
-    @PostMapping
+    // Only Admins & Orgs can create projects
+    @PostMapping("/api/org/projects")
     public ResponseEntity<Project> createProject(@RequestBody Project project, @AuthenticationPrincipal User user) {
-        if (user != null) {
-            project.setUser(user);
+        if (user != null && user.getOrganization() != null) {
             project.setOrganization(user.getOrganization());
         }
         Project saved = projectRepository.save(project);
         return ResponseEntity.ok(saved);
     }
 
-    @PutMapping("/{id}")
+    // Only Admins & Orgs can update projects
+    @PutMapping("/api/org/projects/{id}")
     public ResponseEntity<?> updateProject(@PathVariable Long id, @RequestBody Project projectDetails, @AuthenticationPrincipal User user) {
         Project project = projectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
             
-        if (user != null && project.getUser() != null && !project.getUser().getId().equals(user.getId())) {
+        if (user != null && user.getOrganization() != null && project.getOrganization() != null 
+                && !project.getOrganization().getId().equals(user.getOrganization().getId())) {
             throw new ForbiddenException("Forbidden: You do not have permission to update this project.");
         }
         
@@ -54,12 +57,14 @@ public class ProjectController {
         return ResponseEntity.ok(projectRepository.save(project));
     }
 
-    @DeleteMapping("/{id}")
+    // Only Admins & Orgs can delete projects
+    @DeleteMapping("/api/org/projects/{id}")
     public ResponseEntity<?> deleteProject(@PathVariable Long id, @AuthenticationPrincipal User user) {
         Project project = projectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
 
-        if (user != null && project.getUser() != null && !project.getUser().getId().equals(user.getId())) {
+        if (user != null && user.getOrganization() != null && project.getOrganization() != null 
+                && !project.getOrganization().getId().equals(user.getOrganization().getId())) {
             throw new ForbiddenException("Forbidden: You do not have permission to delete this project.");
         }
         

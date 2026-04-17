@@ -51,9 +51,9 @@ public class AuthController {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword())); // BCrypt
-        user.setRole("Member");
+        user.setRole("ORGANIZATION"); // Set as Organization owner as they just created a workspace
         user.setOrganization(savedOrg);
-        
+
         User saved = userRepository.save(user);
 
         String token = jwtUtil.generateToken(saved.getEmail(), saved.getId());
@@ -66,21 +66,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
         return userRepository.findByEmail(request.getEmail())
-            .map(user -> {
-                if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                .map(user -> {
+                    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                        AuthResponse error = new AuthResponse();
+                        error.setMessage("Wrong username or password.");
+                        return ResponseEntity.status(401).body(error);
+                    }
+                    String token = jwtUtil.generateToken(user.getEmail(), user.getId());
+                    AuthResponse res = new AuthResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
+                    res.setToken(token);
+                    return ResponseEntity.ok(res);
+                })
+                .orElseGet(() -> {
                     AuthResponse error = new AuthResponse();
                     error.setMessage("Wrong username or password.");
                     return ResponseEntity.status(401).body(error);
-                }
-                String token = jwtUtil.generateToken(user.getEmail(), user.getId());
-                AuthResponse res = new AuthResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
-                res.setToken(token);
-                return ResponseEntity.ok(res);
-            })
-            .orElseGet(() -> {
-                AuthResponse error = new AuthResponse();
-                error.setMessage("Wrong username or password.");
-                return ResponseEntity.status(401).body(error);
-            });
+                });
     }
 }
