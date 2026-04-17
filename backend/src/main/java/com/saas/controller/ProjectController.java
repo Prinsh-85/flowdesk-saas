@@ -4,6 +4,8 @@ import com.saas.entity.Project;
 import com.saas.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import com.saas.exception.ForbiddenException;
+import com.saas.exception.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,29 +40,32 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Project> updateProject(@PathVariable Long id, @RequestBody Project projectDetails, @AuthenticationPrincipal User user) {
-        return projectRepository.findById(id).map(project -> {
-            if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
-                return ResponseEntity.status(403).<Project>build();
-            }
-            project.setName(projectDetails.getName() != null ? projectDetails.getName() : project.getName());
-            project.setDescription(projectDetails.getDescription() != null ? projectDetails.getDescription() : project.getDescription());
-            return ResponseEntity.ok(projectRepository.save(project));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateProject(@PathVariable Long id, @RequestBody Project projectDetails, @AuthenticationPrincipal User user) {
+        Project project = projectRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+            
+        if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+            throw new ForbiddenException("Forbidden: You do not have permission to update this project.");
+        }
+        
+        project.setName(projectDetails.getName() != null ? projectDetails.getName() : project.getName());
+        project.setDescription(projectDetails.getDescription() != null ? projectDetails.getDescription() : project.getDescription());
+        return ResponseEntity.ok(projectRepository.save(project));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProject(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        return projectRepository.findById(id).map(project -> {
-            if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
-                return ResponseEntity.status(403).<Void>build();
-            }
-            
-            // Delete associated tasks first to avoid foreign key constraints
-            taskRepository.deleteByProjectId(id);
-            
-            projectRepository.deleteById(id);
-            return ResponseEntity.ok().<Void>build();
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> deleteProject(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        Project project = projectRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        if (user != null && project.getUserId() != null && !project.getUserId().equals(user.getId())) {
+            throw new ForbiddenException("Forbidden: You do not have permission to delete this project.");
+        }
+        
+        // Delete associated tasks first to avoid foreign key constraints
+        taskRepository.deleteByProjectId(id);
+        
+        projectRepository.deleteById(id);
+        return ResponseEntity.ok(java.util.Map.of("message", "Project and associated tasks successfully deleted."));
     }
 }

@@ -38,56 +38,62 @@ public class TaskController {
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         Task saved = taskRepository.save(task);
-        
+
         // Publish to Kafka
         kafkaProducerService.sendTaskUpdate(saved, "CREATED");
         kafkaProducerService.sendActivityLog("User created task: " + saved.getTitle());
-        
+
         return saved;
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails, @AuthenticationPrincipal User user) {
-        return taskRepository.findById(id).map(task -> {
-            // Verify that the logged-in user owns this task
-            if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
-                return ResponseEntity.status(403).<Task>build();
-            }
+    public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task taskDetails,
+            @AuthenticationPrincipal User user) {
+        Task task = taskRepository.findById(id)
+            .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
 
-            boolean statusChanged = taskDetails.getStatus() != null && !taskDetails.getStatus().equals(task.getStatus());
-            
-            task.setTitle(taskDetails.getTitle() != null ? taskDetails.getTitle() : task.getTitle());
-            task.setDescription(taskDetails.getDescription() != null ? taskDetails.getDescription() : task.getDescription());
-            task.setStatus(taskDetails.getStatus() != null ? taskDetails.getStatus() : task.getStatus());
-            task.setPriority(taskDetails.getPriority() != null ? taskDetails.getPriority() : task.getPriority());
-            task.setUpdatedAt(LocalDateTime.now());
-            
-            Task updatedTask = taskRepository.save(task);
-            
-            // Publish to Kafka
-            kafkaProducerService.sendTaskUpdate(updatedTask, "UPDATED");
-            
-            if (statusChanged) {
-                kafkaProducerService.sendNotification("Task '" + updatedTask.getTitle() + "' moved to " + updatedTask.getStatus(), updatedTask);
-                kafkaProducerService.sendActivityLog("Task moved to " + updatedTask.getStatus());
-            }
-            
-            return ResponseEntity.ok(updatedTask);
-        }).orElse(ResponseEntity.notFound().build());
+        // Verify that the logged-in user owns this task
+        if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+            throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to update this task.");
+        }
+
+        boolean statusChanged = taskDetails.getStatus() != null
+                && !taskDetails.getStatus().equals(task.getStatus());
+
+        task.setTitle(taskDetails.getTitle() != null ? taskDetails.getTitle() : task.getTitle());
+        task.setDescription(
+                taskDetails.getDescription() != null ? taskDetails.getDescription() : task.getDescription());
+        task.setStatus(taskDetails.getStatus() != null ? taskDetails.getStatus() : task.getStatus());
+        task.setPriority(taskDetails.getPriority() != null ? taskDetails.getPriority() : task.getPriority());
+        task.setUpdatedAt(LocalDateTime.now());
+
+        Task updatedTask = taskRepository.save(task);
+
+        // Publish to Kafka
+        kafkaProducerService.sendTaskUpdate(updatedTask, "UPDATED");
+
+        if (statusChanged) {
+            kafkaProducerService.sendNotification(
+                    "Task '" + updatedTask.getTitle() + "' moved to " + updatedTask.getStatus(), updatedTask);
+            kafkaProducerService.sendActivityLog("Task moved to " + updatedTask.getStatus());
+        }
+
+        return ResponseEntity.ok(updatedTask);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        return taskRepository.findById(id).map(task -> {
-            // Verify that the logged-in user owns this task
-            if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
-                return ResponseEntity.status(403).<Void>build();
-            }
-            
-            taskRepository.deleteById(id);
-            kafkaProducerService.sendTaskUpdate(id, "DELETED");
-            kafkaProducerService.sendActivityLog("Task deleted");
-            return ResponseEntity.ok().<Void>build();
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> deleteTask(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        Task task = taskRepository.findById(id)
+            .orElseThrow(() -> new com.saas.exception.ResourceNotFoundException("Task not found."));
+
+        // Verify that the logged-in user owns this task
+        if (user != null && task.getUserId() != null && !task.getUserId().equals(user.getId())) {
+            throw new com.saas.exception.ForbiddenException("Forbidden: You do not have permission to delete this task.");
+        }
+
+        taskRepository.deleteById(id);
+        kafkaProducerService.sendTaskUpdate(id, "DELETED");
+        kafkaProducerService.sendActivityLog("Task deleted");
+        return ResponseEntity.ok(java.util.Map.of("message", "Task successfully deleted."));
     }
 }
